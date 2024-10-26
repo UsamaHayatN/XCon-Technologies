@@ -3,92 +3,106 @@ import Image from "next/image";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
+const initValues = {
+  name: "",
+  email: "",
+  phone: "",
+  company: "",
+  service: "",
+  message: "",
+};
+const initState = {
+  isLoading: false,
+  error: "",
+  values: initValues,
+  showAlert: null,
+}; // Added showAlert
+
 const ContactForm = () => {
   const formRef = useRef(null);
-  const [showAlert, setShowAlert] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState(initState);
+  const [touched, setTouched] = useState({});
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    service: "",
-    message: "",
-  });
+  const { values, isLoading, error, showAlert } = state;
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const onBlur = ({ target }) =>
+    setTouched((prev) => ({ ...prev, [target.name]: true }));
+
+  const handleChange = ({ target }) =>
+    setState((prev) => ({
+      ...prev,
+      values: {
+        ...prev.values,
+        [target.name]: target.value,
+      },
+    }));
 
   const handlePhoneChange = (phone) => {
-    setForm({ ...form, phone });
+    setState((prev) => ({
+      ...prev,
+      values: {
+        ...prev.values,
+        phone,
+      },
+    }));
+  };
+
+  const sendContactForm = async (data) => {
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send message");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error sending contact form:", error);
+      throw error; // Re-throw the error for handling in the component
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setState((prev) => ({
+      ...prev,
+      isLoading: true,
+    }));
+
+    // Log the form data to the console
+    console.log("Form Data:", values);
 
     try {
-      // Use the email entered by the user as the recipient
-      const recipientEmail = form.email;
-
-      // Log form data and recipient email to the console
-      console.log("Form Data:", form);
-      console.log("Recipient Email:", recipientEmail);
-
-      // Send form data to the recipient email entered by the user
-      const result = await sendEmail({
-        ...form,
-        SMTP_USER: process.env.SMTP_USER, // Dynamic recipient based on the user's email
-      });
-
-      if (result.success) {
-        setLoading(false);
-
-        // Send a thank-you message to the user's email
-        await sendThankYouEmail(recipientEmail); // Send the thank-you message to the user
-
-        setShowAlert("success");
-
-        // Reset the form
-        setForm({
-          name: "",
-          email: "",
-          phone: "",
-          company: "",
-          service: "",
-          message: "",
-        });
-      } else {
-        setShowAlert("error");
-      }
+      await sendContactForm(values);
+      setTouched({});
+      setState({ ...initState, showAlert: "success" }); // Show success alert
     } catch (error) {
-      setShowAlert("error");
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+        showAlert: "error", // Show error alert
+      }));
     } finally {
-      setLoading(false);
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+      }));
     }
   };
 
   const handleOkayClick = () => {
-    setShowAlert(null);
-  };
-
-  // Function to send a thank-you email to the user
-  const sendThankYouEmail = async (recipientEmail) => {
-    try {
-      const thankYouMessage = {
-        to: recipientEmail,
-        subject: "Thank You for Contacting Us",
-        text: "We have received your message. Our team will get back to you shortly.",
-      };
-
-      // Simulate sending an email to the user
-      await sendEmail(thankYouMessage); // Assuming `sendEmail` handles both sending and receiving emails
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      console.error("Error sending thank you email:", error);
-    }
+    setState((prev) => ({
+      ...prev,
+      showAlert: null,
+    }));
   };
 
   return (
@@ -155,7 +169,7 @@ const ContactForm = () => {
                   type="text"
                   name="name"
                   id="name"
-                  value={form.name}
+                  value={values.name}
                   onChange={handleChange}
                   placeholder="Adam Smith"
                   className="rounded-[10px] border border-gray-300 bg-white px-6 py-[18px] font-bold text-black outline-none transition-all placeholder:font-normal placeholder:text-slate-500 focus:border-customGreen"
@@ -173,7 +187,7 @@ const ContactForm = () => {
                   type="email"
                   name="email"
                   id="email"
-                  value={form.email}
+                  value={values.email}
                   onChange={handleChange}
                   placeholder="example@gmail.com"
                   className="rounded-[10px] border border-gray-300 bg-white px-6 py-[18px] font-bold text-black outline-none transition-all placeholder:font-normal placeholder:text-slate-500 focus:border-customGreen"
@@ -193,7 +207,7 @@ const ContactForm = () => {
                 <PhoneInput
                   country={"pk"}
                   placeholder="Enter phone number"
-                  value={form.phone}
+                  value={values.phone}
                   onChange={handlePhoneChange}
                   containerClass="w-full relative"
                   inputStyle={{
@@ -242,7 +256,7 @@ const ContactForm = () => {
                   type="text"
                   name="company"
                   id="company"
-                  value={form.company}
+                  value={values.company}
                   onChange={handleChange}
                   placeholder="Your Business"
                   className="rounded-[10px] border border-gray-300 bg-white px-6 py-[18px] font-bold text-black outline-none transition-all placeholder:font-normal placeholder:text-slate-500 focus:border-customGreen"
@@ -261,7 +275,7 @@ const ContactForm = () => {
               <select
                 name="service"
                 id="service"
-                value={form.service}
+                value={values.service}
                 onChange={handleChange}
                 className="rounded-[10px] border border-gray-300 bg-white px-6 py-[18px] font-bold text-black outline-none transition-all placeholder:font-normal placeholder:text-slate-500 focus:border-customGreen"
                 required
@@ -273,9 +287,7 @@ const ContactForm = () => {
                 <option value="Web Development">Web Development</option>
                 <option value="Wordpress">Wordpress</option>
                 <option value="App Development">App Development</option>
-                <option value="SEO">SEO</option>
                 <option value="Digital Marketing">Digital Marketing</option>
-                <option value="Consultancy">Consultancy</option>
               </select>
             </div>
 
@@ -289,24 +301,22 @@ const ContactForm = () => {
               <textarea
                 name="message"
                 id="message"
-                value={form.message}
+                rows="5"
+                value={values.message}
                 onChange={handleChange}
-                placeholder="Type your message here..."
+                placeholder="Your Message..."
                 className="rounded-[10px] border border-gray-300 bg-white px-6 py-[18px] font-bold text-black outline-none transition-all placeholder:font-normal placeholder:text-slate-500 focus:border-customGreen"
                 required
-                rows={5}
               ></textarea>
             </div>
-
-            <button
-              type="submit"
-              className={`mt-4 rounded-lg bg-blue-500 text-white px-6 py-3 font-semibold ${
-                loading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              disabled={loading}
-            >
-              {loading ? "Sending..." : "Send Message"}
-            </button>
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                className="w-full rounded-[10px] bg-customGreen py-3 text-white transition-all hover:bg-green-500 focus:outline-none"
+              >
+                {isLoading ? "Sending..." : "Send Message"}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -315,8 +325,3 @@ const ContactForm = () => {
 };
 
 export default ContactForm;
-
-async function sendEmail(formData) {
-  // Your email sending logic here
-  return { success: true }; // Simulating email send success
-}
