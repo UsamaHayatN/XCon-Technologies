@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import nodemailer from "nodemailer";
 import { NextResponse, NextRequest } from "next/server";
 
@@ -115,7 +117,6 @@ export async function POST(NextRequest) {
         console.log("SMTP connection established");
       }
     });
-    
 
     // Main email to your company
     const mailOptions = {

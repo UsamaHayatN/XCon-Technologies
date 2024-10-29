@@ -49,7 +49,7 @@ const ContactForm = () => {
 
   const sendContactForm = async (data) => {
     try {
-      const response = await fetch("/api/contact.js", {
+      const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

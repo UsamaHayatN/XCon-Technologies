@@ -436,7 +436,7 @@
   left: 0;
   top: 100%;
   margin: 0;
-  padding: 12px 0;
+  padding: 12px 12px;
   transition: 0.4s;
   z-index: 4;
   transform: translatey(20px);
@@ -506,7 +506,8 @@
 }
 
 .site-menu-main .sub-menu--item:hover>a {
-  color: #FE330A;
+  background-color:#61a00e ;
+  color: white;
 }
 
 @media (min-width: 992px) {

@@ -1,5 +1,4 @@
 "use client";
-import Header_01 from "@/components/header/Header_01";
 import Footer_01 from "@/components/footer/Footer_01";
 import BusinessProspect from "@/components/OurServices/BusinessProspect";
 import Header from "@/components/OurServices/Header";
@@ -21,7 +20,7 @@ import ContactForm from "@/components/Contact/ContactForm";
 import ContactDetails from "@/components/Contact/ContactDetails";
 
 function Page() {
-	// To open the lightbox change the value of the "toggler" prop.
+
 	const [toggler, setToggler] = useState(false);
 
 	return (
