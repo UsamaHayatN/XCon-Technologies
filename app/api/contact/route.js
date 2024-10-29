@@ -81,9 +81,9 @@ const generateEmailContent = (data) => {
   };
 };
 
-export async function POST(NextRequest) {
+export async function POST(request) {
   try {
-    const body = await NextRequest.json();
+    const body = await request.json();
 
     // Validate required fields
     if (
@@ -98,30 +98,19 @@ export async function POST(NextRequest) {
       return NextResponse.json({ message: "Bad request" }, { status: 400 });
     }
 
-    // Create a transporter with SMTP configuration
+    // Create a transporter using Gmail's SMTP configuration
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_PORT == 465, // true for SSL, false for other ports
+      service: "gmail",
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.GMAIL_USER, // Replace with your Gmail address
+        pass: process.env.GMAIL_PASS, // Replace with your Gmail app password
       },
     });
 
-    // Test SMTP connection
-    await transporter.verify((error, success) => {
-      if (error) {
-        console.error("SMTP connection error:", error);
-      } else {
-        console.log("SMTP connection established");
-      }
-    });
-
-    // Main email to your company
+    // Main email to your Gmail
     const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: email, // You can change this to the desired recipient
+      from: process.env.GMAIL_USER,
+      to: "usamahayatn@gmail.com", // Set the recipient email here
       subject: `New Contact Form Submission from ${body.name}`,
       ...generateEmailContent(body),
     };
