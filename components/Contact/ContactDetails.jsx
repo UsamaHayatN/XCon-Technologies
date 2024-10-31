@@ -29,10 +29,10 @@ const ContactDetails = () => {
           <li className="flex flex-col gap-y-4 text-2xl font-bold">
             Give us a call:
             <Link
-              href="tel:+923495137127"
+              href="tel:+1 (504) 369-9609"
               className="font-normal leading-loose hover:text-customGreen"
             >
-              +923495137127
+              +1 (504) 369-9609
             </Link>
           </li>
           <li className="flex flex-col">
@@ -45,6 +45,6 @@ const ContactDetails = () => {
       </div>
     </div>
   );
-}
+};
 
 export default ContactDetails;
