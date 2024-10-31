@@ -172,7 +172,7 @@ const Footer_01 = () => {
           </div>
 
           {/* Footer Subscriber Section */}
-          <div className="flex flex-col items-center gap-y-4 mt-[-20px]">
+          {/* <div className="flex flex-col items-center gap-y-4 mt-[-20px]">
             <h4 className="text-[20px] font-semibold capitalize text-black text-center">
               Subscribe to our newsletter
             </h4>
@@ -199,7 +199,7 @@ const Footer_01 = () => {
                 </button>
               </div>
             </form>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer Bottom */}

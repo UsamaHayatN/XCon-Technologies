@@ -1,134 +1,98 @@
 import nodemailer from "nodemailer";
-import { NextResponse, NextRequest } from "next/server";
+import Cors from "cors";
 
-const CONTACT_MESSAGE_FIELDS = {
-  name: "Name",
-  email: "Email",
-  phone: "Phone",
-  company: "Company",
-  service: "Service",
-  message: "Message",
-};
+// Initialize CORS middleware
+const cors = Cors({
+  methods: ['POST', 'OPTIONS'], // Allowed methods
+  origin: 'https://your-allowed-origin.com', // Replace with your front-end origin or '*' for all
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+});
 
-// Function to generate email content
-const generateEmailContent = (data) => {
-  const stringData = Object.entries(data).reduce(
-    (str, [key, val]) =>
-      (str += `${CONTACT_MESSAGE_FIELDS[key]}: \n${val} \n \n`),
-    ""
-  );
+// Helper function to run middleware
+const runMiddleware = (req, res, fn) =>
+  new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
 
-  const htmlData = Object.entries(data).reduce((str, [key, val]) => {
-    return (str += `<h3 class="form-heading" align="left">${CONTACT_MESSAGE_FIELDS[key]}</h3><p class="form-answer" align="left">${val}</p>`);
-  }, "");
+export default async function handler(req, res) {
+  await runMiddleware(req, res, cors); // Run CORS middleware
 
-  return {
-    text: stringData,
-    html: `<!DOCTYPE html>
-      <html>
-        <head>
-          <title></title>
-          <meta charset="utf-8"/>
-          <meta name="viewport" content="width=device-width, initial-scale=1"/>
-          <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-          <style type="text/css">
-            body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-            table { border-collapse: collapse !important; }
-            body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
-            @media screen and (max-width: 525px) {
-              .wrapper { width: 100% !important; max-width: 100% !important; }
-              .responsive-table { width: 100% !important; }
-              .padding { padding: 10px 5% 15px 5% !important; }
-              .section-padding { padding: 0 15px 50px 15px !important; }
-            }
-            .form-container { margin-bottom: 24px; padding: 20px; border: 1px dashed #ccc; }
-            .form-heading { color: #2a2a2a; font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif; font-weight: 400; text-align: left; line-height: 20px; font-size: 18px; margin: 0 0 8px; padding: 0; }
-            .form-answer { color: #2a2a2a; font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif; font-weight: 300; text-align: left; line-height: 20px; font-size: 16px; margin: 0 0 24px; padding: 0; }
-            div[style*="margin: 16px 0;"] { margin: 0 !important; }
-          </style>
-        </head>
-        <body style="margin: 0 !important; padding: 0 !important; background: #fff">
-          <table border="0" cellpadding="0" cellspacing="0" width="100%">
-            <tr>
-              <td bgcolor="#ffffff" align="center" style="padding: 10px 15px 30px 15px" class="section-padding">
-                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 500px" class="responsive-table">
-                  <tr>
-                    <td>
-                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                        <tr>
-                          <td>
-                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                              <tr>
-                                <td style="padding: 0; font-size: 16px; line-height: 25px; color: #232323;" class="padding message-content">
-                                  <h2>New Contact Message</h2>
-                                  <div class="form-container">${htmlData}</div>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-      </html>`,
-  };
-};
+  if (req.method === "POST") {
+    console.log("Request body:", req.body); // Log the request body
 
-export async function POST(request) {
-  try {
-    const body = await request.json();
+    const {
+      name,
+      email,
+      phone,
+      company,
+      service,
+      message,
+    } = req.body; // Extract all fields from the request body
 
-    // Validate required fields
-    if (
-      !body ||
-      !body.name ||
-      !body.email ||
-      !body.phone ||
-      !body.company ||
-      !body.service ||
-      !body.message
-    ) {
-      return NextResponse.json({ message: "Bad request" }, { status: 400 });
+    // Validate recipient email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return res
+        .status(400)
+        .json({ message: "Valid recipient email is required" });
     }
 
-    // Create a transporter using Gmail's SMTP configuration
+    // Validate message length
+    if (!message || message.length > 500) {
+      return res
+        .status(400)
+        .json({
+          message: "Message is required and must be less than 500 characters",
+        });
+    }
+
+    // Additional validations for other fields can go here
+
+    // Set up Nodemailer transport
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_PORT == 465,
       auth: {
-        user: process.env.GMAIL_USER, // Replace with your Gmail address
-        pass: process.env.GMAIL_PASS, // Replace with your Gmail app password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
-    // Main email to your Gmail
     const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: "usamahayatn@gmail.com", // Set the recipient email here
-      subject: `New Contact Form Submission from ${body.name}`,
-      ...generateEmailContent(body),
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: "Contact Form Submission",
+      text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nCompany: ${company}\nService: ${service}\nMessage: ${message}`,
     };
 
-    // Send the email
-    await transporter.sendMail(mailOptions);
+    try {
+      // Send the contact form email
+      await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({
-      success: true,
-      message: "Email sent successfully",
-    });
-  } catch (error) {
-    console.error("Error sending email:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to send email, please try again" },
-      { status: 500 }
-    );
+      // Send thank-you email to the recipient
+      const thankYouMailOptions = {
+        from: process.env.SMTP_USER,
+        to: email,
+        subject: "Thank You for Your Submission",
+        text: `Dear ${name},\n\nThank you for reaching out! We have received your message and will get back to you shortly.\n\nBest regards,\nYour Company Name`,
+      };
+
+      // Send the thank-you email
+      await transporter.sendMail(thankYouMailOptions);
+
+      res.status(200).json({ message: "Email sent successfully" });
+    } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).json({ message: "Failed to send email", error: error.message });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
-
-export async function GET() {
-  return NextResponse.json({ message: "Welcome to the Contact Form API!" });
 }

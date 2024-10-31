@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import nodemailer from "nodemailer";
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const CONTACT_MESSAGE_FIELDS = {
   name: "Name",
@@ -15,8 +15,7 @@ const CONTACT_MESSAGE_FIELDS = {
 // Function to generate email content
 const generateEmailContent = (data) => {
   const stringData = Object.entries(data).reduce(
-    (str, [key, val]) =>
-      (str += `${CONTACT_MESSAGE_FIELDS[key]}: \n${val} \n \n`),
+    (str, [key, val]) => (str += `${CONTACT_MESSAGE_FIELDS[key]}: \n${val} \n\n`),
     ""
   );
 
@@ -98,19 +97,30 @@ export async function POST(request) {
       return NextResponse.json({ message: "Bad request" }, { status: 400 });
     }
 
-    // Create a transporter using Gmail's SMTP configuration
+    // Create a transporter with SMTP configuration
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_PORT === '465', // true for SSL, false for other ports
       auth: {
-        user: process.env.GMAIL_USER, // Replace with your Gmail address
-        pass: process.env.GMAIL_PASS, // Replace with your Gmail app password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
-    // Main email to your Gmail
+    // Test SMTP connection
+    await transporter.verify((error, success) => {
+      if (error) {
+        console.error("SMTP connection error:", error);
+      } else {
+        console.log("SMTP connection established");
+      }
+    });
+
+    // Main email to your company
     const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: "usamahayatn@gmail.com", // Set the recipient email here
+      from: process.env.SMTP_USER,
+      to: process.env.RECIPIENT_EMAIL, // Ensure you set this in your environment variables
       subject: `New Contact Form Submission from ${body.name}`,
       ...generateEmailContent(body),
     };
